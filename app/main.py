@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from random import randint
 import psycopg
+from psycopg.rows import dict_row 
 import multipart
 
 
@@ -23,7 +24,7 @@ try:
         dbname='fastapi',  # Use dbname instead of database
         user='postgres',
         password='amarjinish',
-        row_factory=dict  # This will return each row as a dictionary
+        row_factory=dict_row   # This will return each row as a dictionary
     )
     cursor = conn.cursor()
     print("Database connection was successful")
@@ -56,7 +57,10 @@ def root():
 
 @app.get("/posts")
 def get_posts():
-    return {"data": my_post}
+    cursor.execute("""SELECT * FROM posts""")
+    posts = cursor.fetchall()
+    print(posts)
+    return {"data": posts}
 
 # getting values from body using this post method
 
