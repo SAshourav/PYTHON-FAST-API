@@ -3,7 +3,10 @@ from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randint
+import psycopg
+from psycopg.rows import dict_row 
 import multipart
+
 
 app = FastAPI()
 
@@ -13,7 +16,23 @@ class Post(BaseModel):
     content: str
     published: bool = True
     rating: Optional[int] = None
-    
+
+
+try:
+    conn = psycopg.connect(
+        host='localhost',
+        dbname='fastapi',  # Use dbname instead of database
+        user='postgres',
+        password='amarjinish',
+        row_factory=dict_row   # This will return each row as a dictionary
+    )
+    cursor = conn.cursor()
+    print("Database connection was successful")
+except Exception as error:
+    print("Database connection failed")
+    print("Error:", error)
+    time.sleep(2)
+
     
 
 # hard coded data
@@ -38,7 +57,10 @@ def root():
 
 @app.get("/posts")
 def get_posts():
-    return {"data": my_post}
+    cursor.execute("""SELECT * FROM posts""")
+    posts = cursor.fetchall()
+    print(posts)
+    return {"data": posts}
 
 # getting values from body using this post method
 
