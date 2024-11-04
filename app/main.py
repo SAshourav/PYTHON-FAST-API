@@ -66,13 +66,13 @@ def get_posts():
 
 @app.post('/createposts', status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
-    print(post)
-    print(post.dict())
-    # return {"new_post": f'{new_post.title} and {new_post.content} is it published? {new_post.published}. Rating: {new_post.rating}'}
-    post_dict = post.dict()
-    post_dict['id']= randint(0,100000)
-    my_post.append(post_dict)
-    return {"data": post_dict}
+    new_post = cursor.execute("""INSERT INTO posts (title, content, published) VALUES(%s, %s, %s) RETURNING * """, 
+                   (post.title, post.content, post.published))
+    new_post = cursor.fetchone()
+    
+    conn.commit()
+    
+    return {"data": new_post}
     
 @app.get('/posts/latest')
 def get_latest_post():
