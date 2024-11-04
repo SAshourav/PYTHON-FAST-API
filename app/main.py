@@ -36,16 +36,16 @@ except Exception as error:
     
 
 # hard coded data
-my_post = [{'title': 'title of post 1', 'content': 'content of post 1', 'id':1},
-           {'title': 'Favorite Food', 'content': 'I like pizza', 'id':2}]
+cursor.execute("""SELECT * FROM posts""")
+all_posts = cursor.fetchall()
 
 def find_post(id):
-    for p in my_post:
+    for p in all_posts:
         if p['id'] == id:
             return p
 
 def find_index_post(id):
-    for i , p in enumerate(my_post):
+    for i , p in enumerate(all_posts):
         if p['id'] == id:
             return i
 
@@ -76,30 +76,32 @@ def create_post(post: Post):
     
 @app.get('/posts/latest')
 def get_latest_post():
-    post = my_post[len(my_post)-1]
+    post = all_posts[len(all_posts)-1]
     return {"details": post}
 
 # title string, content string, category, bool published 
-@app.get('/posts/{id}') #id field here is a path parameter
+@app.get('/posts/{id}')  # id field here is a path parameter
 def get_post(id: int, response: Response):
-    post = find_post(id)
-    if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail= f'post with id: {id}, was not found')
-        #response.status_code = status.HTTP_404_NOT_FOUND
-        #return {'message': f'post with id: {id} was not found'}
-    return {"post details": post}
+    cursor.execute("SELECT * FROM posts WHERE id = %s", (id,))  # Pass id as a tuple
+    posts = cursor.fetchone()
+    if posts is None:
+        response.status_code = 404
+        return {"error": "Post not found"}
+    return {"data": posts}
 
 
 @app.delete('/posts/{id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    index = find_index_post(id)
+    cursor.execute("DELETE FROM posts WHERE id = %s RETURNING *", (id,))  # Pass id as a tuple
+    deleted_post = cursor.fetchone()
+    conn.commit()
     
-    if index == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'post with id: {id} was not found')
+    if deleted_post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id: {id} does not exist")
     
-    my_post.pop(index)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @app.put('/posts/{id}')
 def update_post(id: int, post: Post):
